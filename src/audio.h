@@ -4,7 +4,8 @@
 
 class c_Player {
 public:
-    c_Player(c_Sink* sink);
+    c_Player(ma_device_info sink);
+    ~c_Player();
 
     ma_engine engine;
 };

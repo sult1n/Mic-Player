@@ -3,28 +3,20 @@
 # --- БЛОК ОЧИСТКИ СТАРЫХ МОДУЛЕЙ ---
 echo "Очистка старых виртуальных устройств..."
 
-# Находим ID запущенных модулей по их системным именам
-OLD_LOOP_ID=$(pactl list modules short | grep "sink=Virtual-sink-for-mic-player" | awk '{print $1}')
-OLD_MIC_ID=$(pactl list modules short | grep "source_name=Virtual-mic-for-mic-player" | awk '{print $1}')
-OLD_SINK_ID=$(pactl list modules short | grep "sink_name=Virtual-sink-for-mic-player" | awk '{print $1}')
+# Функция для безопасного удаления модулей по маске (на случай, если их несколько)
+unload_by_grep() {
+    pactl list modules short | grep "$1" | awk '{print $1}' | while read -r module_id; do
+        if [ ! -z "$module_id" ]; then
+            pactl unload-module "$module_id"
+            echo "Удален модуль (ID: $module_id) по маске: $1"
+        fi
+    done
+}
 
-# Удаляем Loopback, если он существует
-if [ ! -z "$OLD_LOOP_ID" ]; then
-    pactl unload-module $OLD_LOOP_ID
-    echo "Удален старый Loopback (ID: $OLD_LOOP_ID)"
-fi
-
-# Удаляем виртуальный микрофон, если он существует
-if [ ! -z "$OLD_MIC_ID" ]; then
-    pactl unload-module $OLD_MIC_ID
-    echo "Удален старый Микрофон (ID: $OLD_MIC_ID)"
-fi
-
-# Удаляем виртуальный Sink, если он существует
-if [ ! -z "$OLD_SINK_ID" ]; then
-    pactl unload-module $OLD_SINK_ID
-    echo "Удален старый Sink (ID: $OLD_SINK_ID)"
-fi
+# Удаляем в обратном порядке: Loopback -> Mic -> Sink
+unload_by_grep "source_name=Virtual-mic-for-mic-player"
+unload_by_grep "sink=Virtual-sink-for-mic-player"
+unload_by_grep "sink_name=Virtual-sink-for-mic-player"
 
 echo "Очистка завершена. Создание новых устройств..."
 echo "----------------------------------------"
@@ -40,23 +32,23 @@ fi
 
 echo "Используется реальный микрофон: $REAL_MIC"
 
-# 2. Создаем виртуальный Sink (куда пойдет звук из приложений)
+# 2. Создаем виртуальный Sink
 SINK_ID=$(pactl load-module module-null-sink \
     sink_name=Virtual-sink-for-mic-player \
-    sink_properties=device.description="Virtual Sink for Mic Player")
+    sink_properties=device.description=Virtual_Sink_for_Mic_Player)
 
-# 3. Перенаправляем звук с реального микрофона в наш виртуальный Sink
+# 3. Перенаправляем звук
 LOOP_ID=$(pactl load-module module-loopback \
     source="$REAL_MIC" \
     sink=Virtual-sink-for-mic-player \
     latency_msec=1)
 
-# 4. Создаем виртуальный микрофон, который слушает монитор нашего Sink
+# 4. Создаем виртуальный микрофон
 MIC_ID=$(pactl load-module module-remap-source \
     master=Virtual-sink-for-mic-player.monitor \
     source_name=Virtual-mic-for-mic-player \
-    source_properties=device.description="Virtual Mic for Mic Player")
-
+    source_properties=device.description=Virtual_Mic_for_Mic_Player)
+    
 echo "----------------------------------------"
 echo "Успешно создано!"
 echo "ID новых модулей: Sink=$SINK_ID, Loopback=$LOOP_ID, Mic=$MIC_ID"
