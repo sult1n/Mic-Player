@@ -3,3 +3,4 @@ build/
 .git/
 .qtcreator/
 CMakeLists.txt
+start.sh
