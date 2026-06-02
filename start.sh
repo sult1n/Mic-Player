@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# --- БЛОК ОЧИСТКИ СТАРЫХ МОДУЛЕЙ ---
+echo "Очистка старых виртуальных устройств..."
+
+# Находим ID запущенных модулей по их системным именам
+OLD_LOOP_ID=$(pactl list modules short | grep "sink=Virtual-sink-for-mic-player" | awk '{print $1}')
+OLD_MIC_ID=$(pactl list modules short | grep "source_name=Virtual-mic-for-mic-player" | awk '{print $1}')
+OLD_SINK_ID=$(pactl list modules short | grep "sink_name=Virtual-sink-for-mic-player" | awk '{print $1}')
+
+# Удаляем Loopback, если он существует
+if [ ! -z "$OLD_LOOP_ID" ]; then
+    pactl unload-module $OLD_LOOP_ID
+    echo "Удален старый Loopback (ID: $OLD_LOOP_ID)"
+fi
+
+# Удаляем виртуальный микрофон, если он существует
+if [ ! -z "$OLD_MIC_ID" ]; then
+    pactl unload-module $OLD_MIC_ID
+    echo "Удален старый Микрофон (ID: $OLD_MIC_ID)"
+fi
+
+# Удаляем виртуальный Sink, если он существует
+if [ ! -z "$OLD_SINK_ID" ]; then
+    pactl unload-module $OLD_SINK_ID
+    echo "Удален старый Sink (ID: $OLD_SINK_ID)"
+fi
+
+echo "Очистка завершена. Создание новых устройств..."
+echo "----------------------------------------"
+
+# --- БЛОК СОЗДАНИЯ НОВЫХ МОДУЛЕЙ ---
+
+# 1. Автоматически находим имя реального микрофона по умолчанию
+REAL_MIC=$(pactl get-default-source)
+if [ -z "$REAL_MIC" ]; then
+    echo "Ошибка: Реальный микрофон не найден!"
+    exit 1
+fi
+
+echo "Используется реальный микрофон: $REAL_MIC"
+
+# 2. Создаем виртуальный Sink (куда пойдет звук из приложений)
+SINK_ID=$(pactl load-module module-null-sink \
+    sink_name=Virtual-sink-for-mic-player \
+    sink_properties=device.description="Virtual Sink for Mic Player")
+
+# 3. Перенаправляем звук с реального микрофона в наш виртуальный Sink
+LOOP_ID=$(pactl load-module module-loopback \
+    source="$REAL_MIC" \
+    sink=Virtual-sink-for-mic-player \
+    latency_msec=1)
+
+# 4. Создаем виртуальный микрофон, который слушает монитор нашего Sink
+MIC_ID=$(pactl load-module module-remap-source \
+    master=Virtual-sink-for-mic-player.monitor \
+    source_name=Virtual-mic-for-mic-player \
+    source_properties=device.description="Virtual Mic for Mic Player")
+
+echo "----------------------------------------"
+echo "Успешно создано!"
+echo "ID новых модулей: Sink=$SINK_ID, Loopback=$LOOP_ID, Mic=$MIC_ID"

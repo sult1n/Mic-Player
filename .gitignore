@@ -1,0 +1,5 @@
+build/
+.xmake/
+.git/
+.qtcreator/
+CMakeLists.txt
