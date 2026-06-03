@@ -4,4 +4,6 @@
 #include <memory>
 #include <string>
 #include <cstring>
+#include <thread>
+#include <mutex>
 #include "miniaudio.h"

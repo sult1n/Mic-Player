@@ -1,6 +1,5 @@
 #pragma once
 #include "includes.h"
-#include "device_wrapper.h"
 
 class c_Player {
 public:
@@ -8,6 +7,7 @@ public:
     ~c_Player();
 
     ma_engine engine;
+    static std::atomic<bool> is_playing;
 };
 
 class c_Audio {
@@ -15,7 +15,7 @@ public:
     c_Audio();
     ~c_Audio();
 
-    std::unique_ptr<c_Player> player;
+    std::unique_ptr<c_Player> player = nullptr;
     ma_context context;
 };
 
