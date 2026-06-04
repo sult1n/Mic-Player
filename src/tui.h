@@ -3,7 +3,11 @@
 #include "audio.h"
 
 class c_TUI {
+private:
+    std::mutex nc_mutex;
+    notcurses* nc;
 public:
     c_TUI();
-    static void render();
+    void render();
+    void hotkeys();
 };

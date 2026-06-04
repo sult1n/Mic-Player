@@ -7,3 +7,5 @@
 #include <thread>
 #include <mutex>
 #include "miniaudio.h"
+#include "notcurses/notcurses.h"
+#include <notcurses/nckeys.h>
