@@ -14,11 +14,10 @@ void c_TUI::render() {
 
 void c_TUI::hotkeys() {
     while (true) {
-        std::this_thread::sleep_for(std::chrono::microseconds(300));
-        std::lock_guard<std::mutex> lock(this->nc_mutex);
-
+        notcurses* nc_cp;
+        nc_cp = this->nc;
         ncinput ni;
-        uint32_t key = notcurses_get_nblock(nc, &ni);
+        uint32_t key = notcurses_get_blocking(nc_cp, &ni);
         if (!key) continue;
         switch (key) {
             case 'p':
@@ -34,8 +33,8 @@ c_TUI::c_TUI() {
         return;
     }
 
-    std::thread render_thread(&c_TUI::render, this);
+    // std::thread render_thread(&c_TUI::render, this);
     std::thread hotkeys_thread(&c_TUI::hotkeys, this);
-    render_thread.detach();
+    // render_thread.detach();
     hotkeys_thread.detach();
 }

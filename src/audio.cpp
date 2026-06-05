@@ -5,17 +5,16 @@ c_Audio* audio;
 void c_Player::play() {
     ma_sound sound;
     ma_result res;
-    if ((res = ma_sound_init_from_file(&this->engine, "/home/eywan/asdfadsfa_fixed.wav", 0, NULL, NULL, &sound)) != MA_SUCCESS) {
+    if ((res = ma_sound_init_from_file(&this->engine, this->path_to_file.c_str(), 0, NULL, NULL, &sound)) != MA_SUCCESS) {
         std::cout << "error ma sound init" << std::endl;
         std::cout << "result is " << ma_result_description(res) << std::endl;
+        return;
     }
 
     ma_sound_start(&sound);
 
     c_Player::is_playing = true;
     while (ma_sound_is_playing(&sound)) {
-        // ma_sound_stop(&sound);
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     ma_sound_uninit(&sound);
@@ -26,8 +25,10 @@ c_Player::c_Player(ma_device_info sink, std::string path_to_file) {
     engine_config.pPlaybackDeviceID = &sink.id;
     if (ma_engine_init(&engine_config, &this->engine) != MA_SUCCESS) {
         std::cout << "error ma engine init" << std::endl;
+        memset(&this->engine, 0, sizeof(this->engine));
         return;
     }
+    this->path_to_file = path_to_file;
 }
 
 c_Player::~c_Player() {
@@ -45,8 +46,17 @@ c_Player* c_Audio::create_player(std::string path_to_file) {
 }
 
 void c_Audio::update() {
-    this->create_player("/home/eywan/asdfadsfa_fixed.wav");
+    char path_to_file[1024];
+    std::cout << "enter path to file" << std::endl;
+    // getstr(path_to_file);
+    auto plr = this->create_player(path_to_file);
+    if (!plr) return;
+    plr->play();
     while (true) {
+        for (auto& player : this->players) {
+            std::cout << &player.get()->engine << std::endl;
+            std::cout << player.get()->path_to_file << std::endl;
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }

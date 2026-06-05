@@ -7,8 +7,8 @@
 int main()
 {
     std::cout << "mic player v 0.1 is running" << std::endl;
-    // auto render = new c_TUI;
     audio = new c_Audio;
+    auto render = new c_TUI;
     audio->update();
     return 0;
 }
