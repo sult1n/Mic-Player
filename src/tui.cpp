@@ -4,7 +4,7 @@ c_TUI* render;
 
 void c_TUI::render() {
     while (true) {
-        if (audio->is_any_playing_player) {
+        if (audio->player.get()->is_playing) {
             std::cout << "----------------------" << std::endl;
             std::cout << "sound is playing" << std::endl;
             std::cout << "----------------------" << std::endl;
@@ -47,9 +47,9 @@ c_TUI::c_TUI() {
     }
 
     // std::thread render_thread(&c_TUI::render, this);
-    std::thread hotkeys_thread(&c_TUI::hotkeys, this);
+    // std::thread hotkeys_thread(&c_TUI::hotkeys, this);
     // render_thread.detach();
-    hotkeys_thread.detach();
+    // hotkeys_thread.detach();
 }
 
 c_TUI::~c_TUI() {

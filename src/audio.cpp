@@ -3,6 +3,7 @@
 c_Audio* audio;
 
 std::string input_path(notcurses* nc, const char* prompt) {  // ai slop
+    if (!nc) return "";
     ncplane* stdplane = notcurses_stdplane(nc);
     if (prompt) {
         ncplane_putstr(stdplane, prompt);
@@ -49,47 +50,51 @@ std::string input_path(notcurses* nc, const char* prompt) {  // ai slop
     return result;
 }
 
-void c_Player::play() {
-    ma_sound sound;
-    ma_result res;
-    if ((res = ma_sound_init_from_file(&this->engine, this->path_to_file.c_str(), 0, NULL, NULL, &sound)) != MA_SUCCESS) {
-        std::cout << "error ma sound init" << std::endl;
-        std::cout << "result is " << ma_result_description(res) << std::endl;
-        return;
-    }
+void c_Player::play(audio_file* file) {
+    this->is_playing = true;
 
-    ma_sound_start(&sound);
+    ma_sound_start(&file->sound);
 
-    c_Player::is_playing = true;
-    while (ma_sound_is_playing(&sound)) {
-    }
-
-    ma_sound_uninit(&sound);
+    this->is_playing = false;
 }
 
-c_Player::c_Player(ma_device_info sink, std::string path_to_file) {
-    ma_engine_config engine_config = ma_engine_config_init();
-    engine_config.pPlaybackDeviceID = &sink.id;
-    if (ma_engine_init(&engine_config, &this->engine) != MA_SUCCESS) {
-        std::cout << "error ma engine init" << std::endl;
-        memset(&this->engine, 0, sizeof(this->engine));
-        return;
-    }
-    this->path_to_file = path_to_file;
+c_Player::c_Player(ma_engine engine) {
+    this->engine = engine;
 }
 
 c_Player::~c_Player() {
-    ma_engine_uninit(&this->engine);
 }
 
-c_Player* c_Audio::create_player(std::string path_to_file) {
+void c_Audio::send_command(commands command, audio_file* file) {
+    this->command = command;
+    this->file_to_play = file;
+    this->is_update_running = true;
+    this->is_update_running.notify_one();
+}
+
+void c_Audio::send_command(commands command) {
+    this->command = command;
+    this->is_update_running = true;
+    this->is_update_running.notify_one();
+}
+
+audio_file* c_Audio::add_file(std::string& path_to_file) {
+    auto file = std::make_unique<audio_file>();
     if (!std::filesystem::exists(path_to_file)) {
         std::cout << "there is no such file: " << path_to_file << std::endl;
         return nullptr;
     }
-    audio->players.emplace_back(std::make_unique<c_Player>(this->playback, path_to_file));
 
-    return audio->players.back().get();
+    ma_result res;
+    if ((res = ma_sound_init_from_file(&this->engine, path_to_file.c_str(), 0, NULL, NULL, &file->sound)) != MA_SUCCESS) {
+        std::cout << "error ma sound init" << std::endl;
+        std::cout << "result is " << ma_result_description(res) << std::endl;
+        return nullptr;
+    }
+
+    file->name = path_to_file;
+    audio->files.push_back(std::move(file));
+    return audio->files.back().get();
 }
 
 void c_Audio::update() {
@@ -98,15 +103,21 @@ void c_Audio::update() {
     render->pause_hotkeys_thread();
     path_to_file = input_path(render->nc, "path: ");
     render->resume_hotkeys_thread();
-    auto plr = this->create_player(path_to_file);
-    if (!plr) return;
-    plr->play();
+    auto file = this->add_file(path_to_file);
+    if (!file) return;
+    this->send_command(c_Audio::Play, file);
+
     while (true) {
-        for (auto& player : this->players) {
-            std::cout << &player.get()->engine << std::endl;
-            std::cout << player.get()->path_to_file << std::endl;
+        while (!this->is_update_running) {
+            this->is_update_running.wait(false);
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        switch (this->command) {
+            case c_Audio::Play:
+                this->player->play(this->file_to_play);
+        }
+
+        this->is_update_running = false;
     }
 }
 
@@ -136,8 +147,19 @@ c_Audio::c_Audio() {
         std::cout << "there is no virtual devices, use start.sh before mic player" << std::endl;
         return;
     }
+
+    ma_engine_config engine_config = ma_engine_config_init();
+    engine_config.pPlaybackDeviceID = &this->playback.id;
+    if (ma_engine_init(&engine_config, &this->engine) != MA_SUCCESS) {
+        std::cout << "error ma engine init" << std::endl;
+        memset(&this->engine, 0, sizeof(this->engine));
+        return;
+    }
+
+    this->player = std::make_unique<c_Player>(this->engine);
 }
 
 c_Audio::~c_Audio() {
+    ma_engine_uninit(&this->engine);
     ma_context_uninit(&this->context);
 }

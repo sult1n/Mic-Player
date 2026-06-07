@@ -2,29 +2,44 @@
 #include "includes.h"
 #include "tui.h"
 
+struct audio_file {
+    std::string name;
+    ma_sound sound;
+};
+
 class c_Player {
 public:
-    c_Player(ma_device_info sink, std::string path_to_file);
+    c_Player(ma_engine engine);
     ~c_Player();
-    void play();
+    void play(audio_file* file);
+    void pause();
 
     ma_engine engine;
-    std::string path_to_file;
-    bool is_playing;
+    std::atomic<bool> is_playing;
 };
 
 class c_Audio {
 public:
+    enum commands : int {
+        Play,
+        Pause,
+    };
+
     c_Audio();
     ~c_Audio();
     void update();
-    c_Player* create_player(std::string path_to_file);
+    void send_command(commands command, audio_file* file);
+    void send_command(commands command);
+    audio_file* add_file(std::string& path_to_file);
 
-    std::vector<std::unique_ptr<c_Player>> players;
+    std::unique_ptr<c_Player> player;
+    std::vector<std::unique_ptr<audio_file>> files;
+    audio_file* file_to_play;
     ma_context context;
     ma_device_info playback;
-    std::atomic<uint> current_player;
-    std::atomic<bool> is_any_playing_player;
+    ma_engine engine;
+    std::atomic<bool> is_update_running;
+    commands command;
 };
 
 extern c_Audio* audio;
