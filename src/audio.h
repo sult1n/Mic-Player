@@ -16,10 +16,9 @@ public:
     c_Player(ma_engine* engine);
     ~c_Player();
     void play(audio_file* file);
-    void pause();
+    void pause(audio_file* file);
 
     ma_engine* engine;
-    std::atomic<bool> is_playing;
 };
 
 class c_Audio {
@@ -42,8 +41,9 @@ public:
     ma_context context;
     ma_device_info playback;
     ma_engine engine;
+    std::atomic<bool> is_playing;
     std::atomic<bool> is_update_running;
-    commands command;
+    std::atomic<commands> command;
 };
 
 extern c_Audio* audio;

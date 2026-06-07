@@ -4,7 +4,7 @@ c_TUI* render;
 
 void c_TUI::render() {
     while (true) {
-        if (audio->player.get()->is_playing) {
+        if (audio->is_playing) {
             std::cout << "----------------------" << std::endl;
             std::cout << "sound is playing" << std::endl;
             std::cout << "----------------------" << std::endl;
@@ -29,12 +29,11 @@ void c_TUI::hotkeys() {
             this->hotkey_thread_paused.wait(true);
         }
         ncinput ni;
-        timespec ts{0, 100 * 1000000};  // 100 ms
-        uint32_t key = notcurses_get(nc, &ts, &ni);
-        if (!key) continue;
+        uint32_t key = notcurses_get(nc, nullptr, &ni);
+        if (!key || ni.evtype != NCTYPE_PRESS) continue;
         switch (key) {
             case 'p':
-                this->play_key_pressed = !this->play_key_pressed;
+                audio->send_command(c_Audio::commands::Pause);
         }
     }
 }
@@ -47,9 +46,9 @@ c_TUI::c_TUI() {
     }
 
     // std::thread render_thread(&c_TUI::render, this);
-    // std::thread hotkeys_thread(&c_TUI::hotkeys, this);
+    std::thread hotkeys_thread(&c_TUI::hotkeys, this);
     // render_thread.detach();
-    // hotkeys_thread.detach();
+    hotkeys_thread.detach();
 }
 
 c_TUI::~c_TUI() {

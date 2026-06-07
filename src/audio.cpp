@@ -51,11 +51,19 @@ std::string input_path(notcurses* nc, const char* prompt) {  // ai slop
 }
 
 void c_Player::play(audio_file* file) {
-    this->is_playing = true;
+    audio->is_playing = true;
 
     ma_sound_start(&file->sound);
+}
 
-    this->is_playing = false;
+void c_Player::pause(audio_file* file) {
+    if (audio->is_playing) {
+        ma_sound_stop(&file->sound);
+        audio->is_playing = false;
+    } else {
+        ma_sound_start(&file->sound);
+        audio->is_playing = true;
+    }
 }
 
 c_Player::c_Player(ma_engine* engine) {
@@ -115,6 +123,8 @@ void c_Audio::update() {
         switch (this->command) {
             case c_Audio::Play:
                 this->player->play(this->file_to_play);
+            case c_Audio::Pause:
+                this->player->pause(this->file_to_play);
         }
 
         this->is_update_running = false;
@@ -143,7 +153,8 @@ c_Audio::c_Audio() {
             break;
         }
     }
-    if (!this->playback.name) {
+
+    if (!sizeof(this->playback.name)) {
         std::cout << "there is no virtual devices, use start.sh before mic player" << std::endl;
         return;
     }
