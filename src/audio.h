@@ -5,16 +5,20 @@
 struct audio_file {
     std::string name;
     ma_sound sound;
+
+    ~audio_file() {
+        ma_sound_uninit(&sound);
+    }
 };
 
 class c_Player {
 public:
-    c_Player(ma_engine engine);
+    c_Player(ma_engine* engine);
     ~c_Player();
     void play(audio_file* file);
     void pause();
 
-    ma_engine engine;
+    ma_engine* engine;
     std::atomic<bool> is_playing;
 };
 

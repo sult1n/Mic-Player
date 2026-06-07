@@ -58,7 +58,7 @@ void c_Player::play(audio_file* file) {
     this->is_playing = false;
 }
 
-c_Player::c_Player(ma_engine engine) {
+c_Player::c_Player(ma_engine* engine) {
     this->engine = engine;
 }
 
@@ -93,8 +93,8 @@ audio_file* c_Audio::add_file(std::string& path_to_file) {
     }
 
     file->name = path_to_file;
-    audio->files.push_back(std::move(file));
-    return audio->files.back().get();
+    this->files.push_back(std::move(file));
+    return this->files.back().get();
 }
 
 void c_Audio::update() {
@@ -156,7 +156,7 @@ c_Audio::c_Audio() {
         return;
     }
 
-    this->player = std::make_unique<c_Player>(this->engine);
+    this->player = std::make_unique<c_Player>(&this->engine);
 }
 
 c_Audio::~c_Audio() {
