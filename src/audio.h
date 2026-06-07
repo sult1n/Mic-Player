@@ -1,5 +1,6 @@
 #pragma once
 #include "includes.h"
+#include "tui.h"
 
 class c_Player {
 public:

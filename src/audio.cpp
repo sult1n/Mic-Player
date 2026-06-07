@@ -2,6 +2,53 @@
 
 c_Audio* audio;
 
+std::string input_path(notcurses* nc, const char* prompt) {  // ai slop
+    ncplane* stdplane = notcurses_stdplane(nc);
+    if (prompt) {
+        ncplane_putstr(stdplane, prompt);
+        notcurses_render(nc);
+    }
+
+    unsigned int y = 0, x = 0;
+    ncplane_cursor_yx(stdplane, &y, &x);
+
+    ncplane_options nopts = {};
+    nopts.y = y;
+    nopts.x = x;
+    nopts.rows = 1;
+    nopts.cols = ncplane_dim_x(stdplane) - x;
+    ncplane* input_plane = ncplane_create(stdplane, &nopts);
+
+    ncreader_options opts{};
+    opts.flags = NCREADER_OPTION_CURSOR;
+    ncreader* r = ncreader_create(input_plane, &opts);
+
+    ncinput ni;
+    while (true) {
+        uint32_t key = notcurses_get(nc, nullptr, &ni);
+        if (key == NCKEY_ENTER || key == '\n') break;
+        if (key == NCKEY_ESC) {
+            char* contents = nullptr;
+            ncreader_destroy(r, &contents);
+            if (contents) free(contents);
+            return "";
+        }
+
+        ncreader_offer_input(r, &ni);
+        notcurses_render(nc);
+    }
+
+    char* str = ncreader_contents(r);
+    std::string result = str ? str : "";
+    free(str);
+
+    char* contents = nullptr;
+    ncreader_destroy(r, &contents);
+    if (contents) free(contents);
+
+    return result;
+}
+
 void c_Player::play() {
     ma_sound sound;
     ma_result res;
@@ -46,9 +93,11 @@ c_Player* c_Audio::create_player(std::string path_to_file) {
 }
 
 void c_Audio::update() {
-    char path_to_file[1024];
+    std::string path_to_file;
     std::cout << "enter path to file" << std::endl;
-    // getstr(path_to_file);
+    render->pause_hotkeys_thread();
+    path_to_file = input_path(render->nc, "path: ");
+    render->resume_hotkeys_thread();
     auto plr = this->create_player(path_to_file);
     if (!plr) return;
     plr->play();

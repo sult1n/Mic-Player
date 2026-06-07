@@ -1,5 +1,7 @@
 #include "tui.h"
 
+c_TUI* render;
+
 void c_TUI::render() {
     while (true) {
         if (audio->is_any_playing_player) {
@@ -12,12 +14,23 @@ void c_TUI::render() {
     }
 }
 
+void c_TUI::pause_hotkeys_thread() {
+    this->hotkey_thread_paused = true;
+}
+
+void c_TUI::resume_hotkeys_thread() {
+    this->hotkey_thread_paused = false;
+    this->hotkey_thread_paused.notify_one();
+}
+
 void c_TUI::hotkeys() {
     while (true) {
-        notcurses* nc_cp;
-        nc_cp = this->nc;
+        while (this->hotkey_thread_paused) {
+            this->hotkey_thread_paused.wait(true);
+        }
         ncinput ni;
-        uint32_t key = notcurses_get_blocking(nc_cp, &ni);
+        timespec ts{0, 100 * 1000000};  // 100 ms
+        uint32_t key = notcurses_get(nc, &ts, &ni);
         if (!key) continue;
         switch (key) {
             case 'p':
@@ -37,4 +50,7 @@ c_TUI::c_TUI() {
     std::thread hotkeys_thread(&c_TUI::hotkeys, this);
     // render_thread.detach();
     hotkeys_thread.detach();
+}
+
+c_TUI::~c_TUI() {
 }
