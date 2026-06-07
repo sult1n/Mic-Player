@@ -123,8 +123,10 @@ void c_Audio::update() {
         switch (this->command) {
             case c_Audio::Play:
                 this->player->play(this->file_to_play);
+                break;
             case c_Audio::Pause:
                 this->player->pause(this->file_to_play);
+                break;
         }
 
         this->is_update_running = false;
