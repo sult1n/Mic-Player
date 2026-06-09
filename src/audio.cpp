@@ -66,6 +66,38 @@ void c_Player::pause(audio_file* file) {
     }
 }
 
+void c_Player::change_volume(audio_file* file, float volume) {
+    ma_sound_set_volume(&file->sound, volume);
+}
+
+void c_Player::seek(audio_file* file, float second) {
+    auto sample_rate = ma_engine_get_sample_rate(this->engine);
+    auto target_frame = second * (float)sample_rate;
+    this->pause(file);
+    ma_sound_seek_to_pcm_frame(&file->sound, target_frame);
+    this->play(file);
+}
+
+float c_Player::get_cursor(audio_file* file) {
+    ma_uint64 cursor_in_frames = 0;
+    ma_uint32 sample_rate = 0;
+    ma_sound_get_cursor_in_pcm_frames(&file->sound, &cursor_in_frames);
+    ma_sound_get_data_format(&file->sound, 0, 0, &sample_rate, 0, 0);
+    float current_second = (float)cursor_in_frames / (float)sample_rate;
+    return current_second;
+}
+
+float c_Player::get_length(audio_file* file) {
+    ma_uint64 length_in_frames = 0;
+    ma_uint32 sample_rate = 0;
+
+    ma_sound_get_length_in_pcm_frames(&file->sound, &length_in_frames);
+    ma_sound_get_data_format(&file->sound, nullptr, nullptr, &sample_rate, nullptr, 0);
+
+    float total_seconds = (float)length_in_frames / (float)sample_rate;
+    return total_seconds;
+}
+
 c_Player::c_Player(ma_engine* engine) {
     this->engine = engine;
 }
@@ -76,6 +108,23 @@ c_Player::~c_Player() {
 void c_Audio::send_command(commands command, audio_file* file) {
     this->command = command;
     this->file_to_play = file;
+    this->is_update_running = true;
+    this->is_update_running.notify_one();
+}
+
+void c_Audio::send_command(commands command, float volume) {
+    this->command = command;
+    this->volume = volume;
+    this->is_update_running = true;
+    this->is_update_running.notify_one();
+}
+
+void c_Audio::send_command(commands command, float second, bool backward) {
+    this->command = command;
+    if (backward)
+        this->second_to_seek = this->player->get_cursor(this->file_to_play) - second;
+    else
+        this->second_to_seek = this->player->get_cursor(this->file_to_play) + second;
     this->is_update_running = true;
     this->is_update_running.notify_one();
 }
@@ -121,11 +170,17 @@ void c_Audio::update() {
         }
 
         switch (this->command) {
-            case c_Audio::Play:
+            case c_Audio::commands::Play:
                 this->player->play(this->file_to_play);
                 break;
-            case c_Audio::Pause:
+            case c_Audio::commands::Pause:
                 this->player->pause(this->file_to_play);
+                break;
+            case c_Audio::commands::ChangeVolume:
+                this->player->change_volume(this->file_to_play, volume);
+                break;
+            case c_Audio::commands::Seek:
+                this->player->seek(this->file_to_play, this->second_to_seek);
                 break;
         }
 

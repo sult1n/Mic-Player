@@ -17,7 +17,10 @@ public:
     ~c_Player();
     void play(audio_file* file);
     void pause(audio_file* file);
-
+    void change_volume(audio_file* file, float volume);
+    void seek(audio_file* file, float second);
+    float get_cursor(audio_file* file);
+    float get_length(audio_file* file);
     ma_engine* engine;
 };
 
@@ -26,12 +29,16 @@ public:
     enum commands : int {
         Play,
         Pause,
+        ChangeVolume,
+        Seek,
     };
 
     c_Audio();
     ~c_Audio();
     void update();
     void send_command(commands command, audio_file* file);
+    void send_command(commands command, float volume);
+    void send_command(commands command, float second, bool backward);
     void send_command(commands command);
     audio_file* add_file(std::string& path_to_file);
 
@@ -41,6 +48,8 @@ public:
     ma_context context;
     ma_device_info playback;
     ma_engine engine;
+    std::atomic<float> volume;
+    std::atomic<float> second_to_seek;
     std::atomic<bool> is_playing;
     std::atomic<bool> is_update_running;
     std::atomic<commands> command;
