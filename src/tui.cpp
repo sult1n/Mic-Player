@@ -29,24 +29,32 @@ void c_TUI::hotkeys() {
             this->hotkey_thread_paused.wait(true);
         }
         ncinput ni;
+        int multiplier = 1;
         uint32_t key = notcurses_get(nc, nullptr, &ni);
-        if (!key || ni.evtype != NCTYPE_PRESS) continue;
+        if (!key) continue;
+        if (ni.shift)
+            multiplier = 10;
         switch (key) {
             case 'p':
-                audio->send_command(c_Audio::commands::Pause);
+                if (ni.evtype == NCTYPE_PRESS)
+                    audio->send_command(c_Audio::commands::Play);
+                break;
+            case 'm':
+                if (ni.evtype == NCTYPE_PRESS)
+                    audio->send_command(c_Audio::commands::ChangeVolume, 0, true);
+                break;
+            case NCKEY_RIGHT:
+                audio->send_command(c_Audio::commands::Seek, 1 * multiplier);
+                break;
+            case NCKEY_LEFT:
+                audio->send_command(c_Audio::commands::Seek, -1 * multiplier);
                 break;
             case '=':
-                audio->send_command(c_Audio::commands::ChangeVolume, audio->volume += 0.1);
+                audio->send_command(c_Audio::commands::ChangeVolume, audio->volume += 0.1 * multiplier, false);
                 break;
             case '-':
                 if (audio->volume > 0)
-                    audio->send_command(c_Audio::commands::ChangeVolume, audio->volume -= 0.1);
-                break;
-            case NCKEY_RIGHT:
-                audio->send_command(c_Audio::commands::Seek, 1, false);
-                break;
-            case NCKEY_LEFT:
-                audio->send_command(c_Audio::commands::Seek, 1, true);
+                    audio->send_command(c_Audio::commands::ChangeVolume, audio->volume -= 0.1 * multiplier, false);
                 break;
         }
     }

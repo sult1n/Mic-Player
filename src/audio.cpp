@@ -51,12 +51,6 @@ std::string input_path(notcurses* nc, const char* prompt) {  // ai slop
 }
 
 void c_Player::play(audio_file* file) {
-    audio->is_playing = true;
-
-    ma_sound_start(&file->sound);
-}
-
-void c_Player::pause(audio_file* file) {
     if (audio->is_playing) {
         ma_sound_stop(&file->sound);
         audio->is_playing = false;
@@ -73,9 +67,7 @@ void c_Player::change_volume(audio_file* file, float volume) {
 void c_Player::seek(audio_file* file, float second) {
     auto sample_rate = ma_engine_get_sample_rate(this->engine);
     auto target_frame = second * (float)sample_rate;
-    this->pause(file);
     ma_sound_seek_to_pcm_frame(&file->sound, target_frame);
-    this->play(file);
 }
 
 float c_Player::get_cursor(audio_file* file) {
@@ -112,19 +104,19 @@ void c_Audio::send_command(commands command, audio_file* file) {
     this->is_update_running.notify_one();
 }
 
-void c_Audio::send_command(commands command, float volume) {
+void c_Audio::send_command(commands command, float volume, bool is_mute) {
     this->command = command;
-    this->volume = volume;
+    if (!is_mute)
+        this->volume = volume;
+    else
+        this->is_muted = !this->is_muted;
     this->is_update_running = true;
     this->is_update_running.notify_one();
 }
 
-void c_Audio::send_command(commands command, float second, bool backward) {
+void c_Audio::send_command(commands command, float second) {
     this->command = command;
-    if (backward)
-        this->second_to_seek = this->player->get_cursor(this->file_to_play) - second;
-    else
-        this->second_to_seek = this->player->get_cursor(this->file_to_play) + second;
+    this->second_to_seek = this->player->get_cursor(this->file_to_play) + second;
     this->is_update_running = true;
     this->is_update_running.notify_one();
 }
@@ -173,11 +165,11 @@ void c_Audio::update() {
             case c_Audio::commands::Play:
                 this->player->play(this->file_to_play);
                 break;
-            case c_Audio::commands::Pause:
-                this->player->pause(this->file_to_play);
-                break;
             case c_Audio::commands::ChangeVolume:
-                this->player->change_volume(this->file_to_play, volume);
+                if (this->is_muted)
+                    this->player->change_volume(this->file_to_play, 0);
+                else
+                    this->player->change_volume(this->file_to_play, volume);
                 break;
             case c_Audio::commands::Seek:
                 this->player->seek(this->file_to_play, this->second_to_seek);

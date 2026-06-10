@@ -28,7 +28,6 @@ class c_Audio {
 public:
     enum commands : int {
         Play,
-        Pause,
         ChangeVolume,
         Seek,
     };
@@ -37,8 +36,8 @@ public:
     ~c_Audio();
     void update();
     void send_command(commands command, audio_file* file);
-    void send_command(commands command, float volume);
-    void send_command(commands command, float second, bool backward);
+    void send_command(commands command, float volume, bool is_mute);
+    void send_command(commands command, float second);
     void send_command(commands command);
     audio_file* add_file(std::string& path_to_file);
 
@@ -51,6 +50,7 @@ public:
     std::atomic<float> volume;
     std::atomic<float> second_to_seek;
     std::atomic<bool> is_playing;
+    std::atomic<bool> is_muted;
     std::atomic<bool> is_update_running;
     std::atomic<commands> command;
 };
