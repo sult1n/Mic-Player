@@ -1,0 +1,23 @@
+Checks: >
+  -*,
+  bugprone-*,
+  performance-*,
+  modernize-*,
+  readability-container-size-empty,
+  readability-make-member-function-const,
+  readability-redundant-*,
+  readability-simplify-boolean-expr,
+  -modernize-use-trailing-return-type,
+  -modernize-use-nodiscard,
+  -bugprone-easily-swappable-parameters,
+  -performance-avoid-endl,
+  cert-*,
+  -cert-err60-cpp,
+  misc-uniqueptr-reset-release,
+  readability-static-accessed-through-instance
+
+WarningsAsErrors: 'bugprone-*,performance-*'
+
+CheckOptions:
+  modernize-loop-convert.MaxCopySize: '16'
+  performance-move-const-arg.CheckTriviallyCopyable: 'true'

@@ -1,6 +1,5 @@
 #pragma once
 #include "includes.h"
-#include "tui.h"
 
 struct audio_file {
     std::string name;
@@ -13,8 +12,7 @@ struct audio_file {
 
 class c_Player {
 public:
-    c_Player(ma_engine* engine);
-    ~c_Player();
+    c_Player(ma_engine* engine_);
     void play(audio_file* file);
     void pause(audio_file* file);
     void change_volume(audio_file* file, float volume);
@@ -26,7 +24,7 @@ public:
 
 class c_Audio {
 public:
-    enum commands : int {
+    enum commands : uint8_t {
         Play,
         ChangeVolume,
         Seek,
@@ -35,10 +33,10 @@ public:
     c_Audio();
     ~c_Audio();
     void update();
-    void send_command(commands command, audio_file* file);
-    void send_command(commands command, float volume, bool is_mute);
-    void send_command(commands command, float second);
-    void send_command(commands command);
+    void send_command(commands command_, audio_file* file);
+    void send_command(commands command_, float volume, bool is_mute);
+    void send_command(commands command_, float second);
+    void send_command(commands command_);
     audio_file* add_file(std::string& path_to_file);
 
     std::unique_ptr<c_Player> player;

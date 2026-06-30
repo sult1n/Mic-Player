@@ -23,17 +23,17 @@ void c_TUI::resume_hotkeys_thread() {
     this->hotkey_thread_paused.notify_one();
 }
 
-void c_TUI::hotkeys() {
+void c_TUI::hotkeys() const {
     while (true) {
         while (this->hotkey_thread_paused) {
             this->hotkey_thread_paused.wait(true);
         }
         ncinput ni;
-        int multiplier = 1;
+        float multiplier = 1.f;
         uint32_t key = notcurses_get(nc, nullptr, &ni);
         if (!key) continue;
         if (ni.shift)
-            multiplier = 10;
+            multiplier = 10.f;
         switch (key) {
             case 'p':
                 if (ni.evtype == NCTYPE_PRESS)
@@ -44,17 +44,19 @@ void c_TUI::hotkeys() {
                     audio->send_command(c_Audio::commands::ChangeVolume, 0, true);
                 break;
             case NCKEY_RIGHT:
-                audio->send_command(c_Audio::commands::Seek, 1 * multiplier);
+                audio->send_command(c_Audio::commands::Seek, 1.f * multiplier);
                 break;
             case NCKEY_LEFT:
-                audio->send_command(c_Audio::commands::Seek, -1 * multiplier);
+                audio->send_command(c_Audio::commands::Seek, -1.f * multiplier);
                 break;
             case '=':
-                audio->send_command(c_Audio::commands::ChangeVolume, audio->volume += 0.1 * multiplier, false);
+                audio->send_command(c_Audio::commands::ChangeVolume, audio->volume += 0.1f * multiplier, false);
                 break;
             case '-':
                 if (audio->volume > 0)
-                    audio->send_command(c_Audio::commands::ChangeVolume, audio->volume -= 0.1 * multiplier, false);
+                    audio->send_command(c_Audio::commands::ChangeVolume, audio->volume -= 0.1f * multiplier, false);
+                break;
+            default:
                 break;
         }
     }

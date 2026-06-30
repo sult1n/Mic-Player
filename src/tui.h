@@ -9,7 +9,7 @@ public:
     void render();
     void pause_hotkeys_thread();
     void resume_hotkeys_thread();
-    void hotkeys();
+    void hotkeys() const;
 
     notcurses* nc;
     std::atomic<bool> play_key_pressed;
